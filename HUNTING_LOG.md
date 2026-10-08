@@ -23,6 +23,19 @@ false positives are the point: rigor is what separates a real finding from noise
 | `mistune` 3.3.4 | `_directive_re` (rst / fenced) | **False positive** | Pattern ends unanchored (`(?:…\n+)*`) and is used with `.match`, which only needs a prefix match — no forced failure to drive backtracking. Linear at 25 KB input. Also opt-in (non-default plugin). |
 | `markdown2`, `humanfriendly`, `validators`, `img2pdf`, `w3lib`, `parse`, … | various | Not confirmed | Flagged by shape heuristic; timed out linear, or not reachable from attacker input. |
 
+## Round 2 — command-injection + wider ReDoS sweep (~175 packages)
+
+Built an AST taint scanner (`scripts/taint_scan.py`) for command-injection, and a
+method-aware automated ReDoS oracle (`scripts/auto_redos2.py`) validated against the
+known configobj bug. Swept ~175 packages.
+
+| Target | Finding | Verdict |
+|--------|---------|---------|
+| `netmiko` 4.8.0 | `set_base_prompt` prompt regex `\*?(.*?)(>.*)*#` (nokia_sros.py:67, nokia_isam.py:25) | **REAL — exponential ReDoS, novel.** ~26-byte device prompt hangs host >10s. Device-controlled input. No CVE found. See `advisories/netmiko-nokia-redos/`. |
+| `markdown2` 2.5.5 | `_key_val_list_pat` (line 621) | **False positive** — blows up only under `fullmatch`; real call is `re.findall` (linear). Oracle over-flagged `compile`-site patterns. |
+| `pyttsx3` 2.99 | `os.system(f"aplay {temp_wav_name}")` | **False positive** — temp name is a random `NamedTemporaryFile`; text goes via C API, not shell. |
+| `command_runner`, `invoke`, `cmd2`, `pyinfra` | `shell=True` / `os.system` | By design (command-runner libraries). Not vulns. |
+
 ## Lessons (the traps)
 
 1. **`re.search` fakes quadratics.** Searching retries at every start offset, so *any*
