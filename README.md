@@ -22,6 +22,8 @@ open-source software, plus write-ups of what I find.
   **reproduction of the known CVE-2024-12366** (PandasAI ≤2.4.3), **not** an original find —
   kept as a demonstration of RCE-class analysis. Prior art was checked before any claim.
 
+- **[`advisories/shapash-dashboard-rce/`](advisories/shapash-dashboard-rce/)** — a **novel, unauthenticated RCE** in the Shapash ML-explainability web dashboard (`eval()` on a client-controlled Dash callback id, `smart_app.py:2997`). Verified end-to-end. **DRAFT / embargoed** — report via huntr / MAIF before any public mention.
+
 ## Ethics
 
 Everything here follows responsible-disclosure norms: findings are confirmed with minimal,

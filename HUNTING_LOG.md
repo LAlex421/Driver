@@ -118,6 +118,26 @@ remains the one genuinely undocumented, reportable vulnerability from the whole 
 (~300+ packages across ReDoS, command injection, path traversal, deserialization, SSTI,
 SSRF). The pandasai RCE is real but a known CVE.
 
+## Round 8 — bug-bounty pivot (huntr / AI-ML) → SHAPASH RCE (novel)
+
+Targeted huntr-eligible AI/ML tooling for RCE-class bugs. Flagship libs were hardened
+(langchain loaders all gated behind `allow_dangerous_deserialization`; BentoML rejects
+pickle on its external server; crewai pickles are local cache). Pivoted to the long tail
+of ML tools with a **web surface**, and hit a genuine, novel finding:
+
+**`shapash` 2.9.0 — unauthenticated RCE in the web dashboard.**
+`shapash/webapp/smart_app.py:2997` runs `eval(button_id)` where
+`button_id = ctx.triggered[0]["prop_id"].split(".")[0]` — and Dash's `prop_id` comes from the
+client-supplied `changedPropIds` in the `/_dash-update-component` POST. A dot-free payload
+(`getattr(__import__('os'),'system')('<cmd>')`) survives the `.split(".")[0]` and executes.
+**Verified end-to-end** with a crafted Dash request (dash 2.18.2). Novel (no CVE found), fix is
+a drop-in `json.loads`. See `advisories/shapash-dashboard-rce/`. This is the bug-bounty
+candidate — submit via huntr / MAIF.
+
+Also checked, not vulnerable / not bounty-worthy this round: langchain_community (gated),
+bentoml (gated main server), crewai (local pickle cache), omegaconf/confuse/python-box
+(SafeLoader), skops/m2cgen/sklearn2pmml (CLI, caller-supplied paths), hl7apy (offline profile).
+
 ## Lessons (the traps)
 
 1. **`re.search` fakes quadratics.** Searching retries at every start offset, so *any*
