@@ -98,6 +98,26 @@ The pandasai escape is real and end-to-end (string-split `getattr` defeats the s
 target yields a higher-severity bug class, but severity ≠ novelty.** The only *novel*
 reportable finding from all rounds remains the netmiko prompt-ReDoS cluster.
 
+## Rounds 6–7 — continued novel-hunt (file-serving, config, protocol, security libs)
+
+Swept ~90 more packages (Flask/Django extensions, config/deser loaders, scrapers,
+protocol/HL7/ASN.1 parsers, auth/JWT libs) with the ReDoS oracle + high-severity scanner.
+All candidates guarded, known, or not attacker-reachable:
+
+| Target | Candidate | Verdict |
+|--------|-----------|---------|
+| `flask-admin` FileAdmin | `send_file` on user path | Guarded by `is_in_folder` (prefix-check weakness noted, impact limited to sibling dirs sharing the base prefix; likely known). |
+| `Flask-AutoIndex` | `send_file(abspath)` | Guarded — `os.path.relpath`+`startswith('..')` blocks `../` and absolute escapes. |
+| `omegaconf`, `confuse`, `python-box` | `yaml.load` | Safe — all use SafeLoader / SafeLoader subclasses. |
+| `Flask-Session` 0.8 | `pickle.loads` fallback after msgpack/json | Latent RCE only with store-write access; maintainers already flag it (`TODO: remove in 1.0.0`). |
+| `Flask-RESTful` `crypto.py` | `pickle.loads` | Dead utility, no callers, needs the key. |
+| `hl7apy` | `load_message_profile(path)` → `pickle.load` | Caller-supplied path, offline-generated profiles; unsafe-by-design, not auto-reachable. |
+
+Net: no additional *novel* finding in these rounds. The netmiko prompt-ReDoS cluster
+remains the one genuinely undocumented, reportable vulnerability from the whole campaign
+(~300+ packages across ReDoS, command injection, path traversal, deserialization, SSTI,
+SSRF). The pandasai RCE is real but a known CVE.
+
 ## Lessons (the traps)
 
 1. **`re.search` fakes quadratics.** Searching retries at every start offset, so *any*
