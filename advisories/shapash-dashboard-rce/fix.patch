@@ -1,0 +1,29 @@
+From: <your name/handle>
+Subject: [PATCH] webapp: fix RCE — parse Dash callback id with json.loads instead of eval
+
+The `layout_filter` callback parsed the triggered component id with `eval()`. The triggered
+`prop_id` comes from the client-supplied `changedPropIds` of the `/_dash-update-component`
+request, so this allowed unauthenticated remote code execution on the host running the
+dashboard. Dash serialises pattern-matching ids as JSON, so `json.loads` is a
+behaviour-preserving, safe replacement (returns the same {"index": ...} dict; rejects
+non-JSON payloads with JSONDecodeError).
+
+--- a/shapash/webapp/smart_app.py
++++ b/shapash/webapp/smart_app.py
+@@ -3,6 +3,7 @@
+ """
+ 
+ import copy
++import json
+ import random
+ import re
+ from math import isfinite, log10
+@@ -2994,7 +2995,7 @@
+                 return [html.Div(id={"type": "bloc_div", "index": 0}, children=[])]
+             # Removal of an existing filter
+             else:
+-                filter_id_to_remove = eval(button_id)["index"]
++                filter_id_to_remove = json.loads(button_id)["index"]
+                 return [gr for gr in currents_filters if gr["props"]["id"]["index"] != filter_id_to_remove]
+ 
+         @app.callback(
