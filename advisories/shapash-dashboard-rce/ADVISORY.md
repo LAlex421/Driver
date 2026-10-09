@@ -13,7 +13,10 @@ Python's `eval()`, giving **unauthenticated remote code execution** to anyone wh
 the running dashboard.
 
 - **Package:** `shapash` (PyPI) — ML model explainability + dashboard
-- **Version analysed:** 2.9.0 (current); the sink is long-standing
+- **Affected versions:** **2.2.0 – 2.9.0 (latest); no fixed release.** Verified by source: the
+  `eval(button_id)` sink is absent in ≤2.1.1, introduced in 2.2.0 (with the filter-dropdown
+  feature), and present unchanged through 2.9.0 (2.2.0, 2.4.0, 2.6.0, 2.7.0, 2.7.10, 2.8.0,
+  2.8.1, 2.9.0 all confirmed).
 - **Component:** `shapash/webapp/smart_app.py`, `layout_filter` callback, **line 2997**
 - **Class:** Code injection / RCE (CWE-94 / CWE-95)
 - **Auth:** none — Dash's `/_dash-update-component` endpoint is unauthenticated by default
@@ -79,16 +82,20 @@ RESULT: VULNERABLE (code executed)
 
 ## Threat model & severity
 
-**Severity: High → Critical** depending on exposure.
-- Any party able to reach the dashboard HTTP endpoint (no credentials) gains code execution.
-- Shapash dashboards are frequently run to **share** explainability results with colleagues
-  / stakeholders, and are deployed behind servers or on shared hosts — not always localhost.
-  Dash apps bound to `0.0.0.0` (common when sharing) are directly exploitable over the network.
-- Even localhost-only instances are exposed to **DNS-rebinding / CSRF-style** cross-origin
-  POSTs from a victim's browser, since the endpoint is unauthenticated and state-changing.
+**Severity: Critical — and network-exposed by default.**
+- `SmartExplainer.run_app()` **defaults the bind host to `0.0.0.0`** (`smart_explainer.py`:
+  `if host is None: host = "0.0.0.0"`; the docstring states *"Defaults to `0.0.0.0`, allowing
+  external access."*). The bundled launchers (`webapp/webapp_launch.py`,
+  `webapp_launch_DVF.py`) also bind `0.0.0.0:8080`. So the documented, default way to start the
+  dashboard listens on **all interfaces** — no special "sharing" config needed.
+- The callback endpoint `/_dash-update-component` is **unauthenticated**; any party who can
+  reach the dashboard URL gets code execution with a single POST.
+- (Even a non-default loopback bind is reachable via DNS-rebinding / CSRF-style cross-origin
+  POSTs, since the endpoint is unauthenticated and state-changing.)
 
-Suggested CVSS 3.1: `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` = **9.8 (Critical)** for an exposed
-dashboard; reduce to High if the deployment is strictly loopback-bound.
+Suggested CVSS 3.1: `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` = **9.8 (Critical)** — justified by
+the default `0.0.0.0` bind. (If a specific deployment restricts the host to loopback, score
+that instance lower, e.g. ~8.8 UI:R via CSRF; the default configuration is Critical.)
 
 ## Remediation (verified behaviour-preserving + safe)
 

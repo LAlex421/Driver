@@ -25,7 +25,7 @@ exploit publicly (issue/PR/social) before a fix is agreed.
 
 **Title:** Unauthenticated RCE in Shapash web dashboard via `eval()` on Dash callback id (`smart_app.py:2997`)
 
-**Affected:** shapash 2.9.0 (current) and earlier versions containing the `layout_filter`
+**Affected:** shapash 2.2.0 – 2.9.0 (latest); no fixed release. Sink introduced in 2.2.0 with the filter-dropdown feature; absent in ≤2.1.1. Runs on `dash>=2.3.1,<3.0.0`.
 callback; runs on `dash>=2.3.1,<3.0.0`.
 
 **Type:** Code Injection / Remote Code Execution (CWE-94/95). Unauthenticated.
