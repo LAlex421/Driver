@@ -28,6 +28,8 @@ open-source software, plus write-ups of what I find.
 
 - **[`advisories/taipy-gui-query-injection/`](advisories/taipy-gui-query-injection/)** — a **novel, unauthenticated** pandas-`query` expression injection + ReDoS in the Taipy GUI table filter (`pandas_data_accessor.py`), reachable over the GUI WebSocket. Filter bypass, blind data exfiltration, DoS. **DRAFT / embargoed** — huntr / Avaiga disclosure.
 
+- **[`advisories/evidently-collector-file-write/`](advisories/evidently-collector-file-write/)** — a **novel** unauthenticated **arbitrary file write** (path traversal) in Evidently's collector service (`reference_path` → `to_parquet`), unauth by default. **DRAFT / embargoed** — huntr.
+
 ## Ethics
 
 Everything here follows responsible-disclosure norms: findings are confirmed with minimal,

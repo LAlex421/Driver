@@ -185,3 +185,18 @@ addition to that known class → duplicate risk. DoS-tier, not the RCE/$4K tier.
 Takeaway: the model-file-format space (esp. GGUF) is heavily farmed, and its $4K RCE tier is
 native-code memory corruption in llama.cpp/ggml — not verifiable in pure Python here and heavily
 competed. The productive novel vein for this session remains ML *web apps* (shapash, taipy).
+
+## Round 11 — third huntr candidate: Evidently collector arbitrary file write
+
+Scanned web-framework files across the ~400-pkg corpus for eval/exec/query and file-path sinks.
+Dead ends: mlflow scorer `exec` (guarded behind MLFLOW_SERVER_ENABLE_CUSTOM_SCORERS), llmware
+`eval` (by-design caller DSL), chainlit FileResponse (guarded by is_path_inside), evidently UI
+routes (litestar `:uuid` validated). Finding:
+
+**`evidently` 0.7.23 — unauthenticated arbitrary file write in the collector service.**
+`collector/app.py set_reference` writes `to_parquet(os.path.join(service_workspace, reference_path))`
+where `reference_path` is a client-settable CollectorConfig field with no containment check
+(absolute path discards workspace; `../` escapes). Unauthenticated by default: `run(secret=None)`
+→ NoSecurityService.authenticate() always returns a user, so guards=[is_authenticated] passes.
+Verified the path escape (absolute + traversal). Distinct from CVE-2026-75111 (UI read traversal);
+this is a collector *write*. See advisories/evidently-collector-file-write/.

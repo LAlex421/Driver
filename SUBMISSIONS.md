@@ -33,7 +33,20 @@ report. Add your name/handle where a report says `<your name / handle>`.
   honest in the report: RCE not demonstrated; reviewer may land it High/Medium).
 - [ ] in scope confirmed  [ ] report pasted + PoC attached  [ ] handle filled in  [ ] submitted
 
-### 3. netmiko — prompt-parsing ReDoS cluster  ·  NOT huntr (not AI/ML)
+### 3. evidently — unauthenticated arbitrary file write (collector)  ·  solid
+- **Where:** huntr (package `evidently`; it already has CVEs on huntr). Form:
+  https://huntr.com/bounties/disclose/opensource
+- **Paste:** [`advisories/evidently-collector-file-write/HUNTR_REPORT.md`](advisories/evidently-collector-file-write/HUNTR_REPORT.md)
+- **Attach:** `advisories/evidently-collector-file-write/poc.py`
+- **What:** collector `set_reference` writes `to_parquet(join(workspace, reference_path))` with a
+  client-controlled `reference_path` (absolute/`../`) and no containment check; unauthenticated by
+  default (`NoSecurityService`). Arbitrary file write → potential RCE. Full write-up: `ADVISORY.md`.
+- **Affected:** 0.7.23 (current). **CWE-22/73 · CVSS ~9.1.** Honesty: distinct from CVE-2026-75111
+  (that's a UI *read*); confirm no newer collector advisory supersedes it, and note the default
+  loopback host vs the collector's exposed-by-design use.
+- [ ] in scope confirmed  [ ] report pasted + PoC attached  [ ] handle filled in  [ ] submitted
+
+### 4. netmiko — prompt-parsing ReDoS cluster  ·  NOT huntr (not AI/ML)
 - **Where:** NOT huntr. Report to the maintainer: ktbyers/netmiko →
   https://github.com/ktbyers/netmiko → Security → Report a vulnerability (GitHub can assign a
   CVE). This earns a **CVE, not a bounty**.
