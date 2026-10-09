@@ -12,9 +12,9 @@ open-source software, plus write-ups of what I find.
   [DiffSK/configobj#281](https://github.com/DiffSK/configobj/issues/281); credit for the
   original report belongs to that reporter (see the attribution note in the file).
 - **[`poc/`](poc/)** — self-contained, non-destructive proof-of-concept code.
-- **[`advisories/netmiko-nokia-redos/`](advisories/netmiko-nokia-redos/)** — an
-  **independently discovered, novel** exponential ReDoS in `netmiko` 4.8.0's Nokia
-  SR-OS / ISAM prompt parsing. **DRAFT / embargoed:** not yet disclosed to maintainers —
+- **[`advisories/netmiko-prompt-redos/`](advisories/netmiko-prompt-redos/)** — an
+  **independently discovered, novel** ReDoS **cluster** in `netmiko` 4.8.0's device-prompt
+  parsing (`set_base_prompt` in the Nokia SR-OS/ISAM, Extreme EXOS, and Cisco ASA drivers). **DRAFT / embargoed:** not yet disclosed to maintainers —
   do a private security report before publishing or requesting a CVE.
 
 ## Ethics

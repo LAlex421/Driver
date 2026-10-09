@@ -55,6 +55,31 @@ Net result of rounds 2–3: one strong, novel finding (**netmiko Nokia ReDoS**, 
 `advisories/`). Everything else was guarded, low-threat, or a disproved false positive —
 the expected hit rate for auditing maintained packages.
 
+## Round 4 — deep audit of one target (netmiko)
+
+AST-extracted and battery-tested **all 178** `re.*` call sites in netmiko 4.8.0
+(`scripts/netmiko_audit.py`), each under its real method. Also reviewed the non-ReDoS
+surface (ProxyCommand = ssh-config-driven, not remote; SCP commands are device-side with
+caller-controlled paths → clean).
+
+Result: a **cluster of four prompt-parsing ReDoS sites**, all in per-driver
+`set_base_prompt()` overrides running `re.search` on device-controlled prompt text:
+
+| Site | Regex | Growth |
+|------|-------|--------|
+| `nokia/nokia_sros.py:67` | `\*?(.*?)(>.*)*#` | exponential (~26 B → >10s) |
+| `nokia/nokia_isam.py:25` | `\*?(.*?)(>.*)*#` | exponential |
+| `extreme/extreme_exos.py:41` | `[\*\s]*(.*)\.\d+` | polynomial ~O(n³) (2 KB → >12s) |
+| `cisco/cisco_asa_ssh.py:116` | `(.*)\(conf.*` | polynomial ~O(n²) (20 KB → >8s) |
+
+Shared root cause and fixes verified behaviour-preserving + linear — see
+`advisories/netmiko-prompt-redos/`. The deep-dive turned a single bug into a documented
+*class*, which makes for one coherent, higher-value disclosure.
+
+Extra false-positive caught here: the oracle flagged a regex under `fullmatch` that netmiko
+actually runs with `re.search`; and a naive "fix" that kept a leading `[\*\s]*` was still
+O(n²) because `re.search` re-scans from every offset — the real fix must **anchor** (`^`).
+
 ## Lessons (the traps)
 
 1. **`re.search` fakes quadratics.** Searching retries at every start offset, so *any*
