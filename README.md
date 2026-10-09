@@ -3,6 +3,8 @@
 A small, honest security-research repo: the method I use to find vulnerabilities in
 open-source software, plus write-ups of what I find.
 
+> **Ready to submit?** See **[`SUBMISSIONS.md`](SUBMISSIONS.md)** — the turnkey list of what to send, where, and in what order (and what *not* to send).
+
 ## Contents
 
 - **[`METHODOLOGY.md`](METHODOLOGY.md)** — the source→sink method, high-value sink patterns,
