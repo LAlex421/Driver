@@ -24,6 +24,8 @@ open-source software, plus write-ups of what I find.
 
 - **[`advisories/shapash-dashboard-rce/`](advisories/shapash-dashboard-rce/)** — a **novel, unauthenticated RCE** in the Shapash ML-explainability web dashboard (`eval()` on a client-controlled Dash callback id, `smart_app.py:2997`). Verified end-to-end. **DRAFT / embargoed** — report via huntr / MAIF before any public mention.
 
+- **[`advisories/taipy-gui-query-injection/`](advisories/taipy-gui-query-injection/)** — a **novel, unauthenticated** pandas-`query` expression injection + ReDoS in the Taipy GUI table filter (`pandas_data_accessor.py`), reachable over the GUI WebSocket. Filter bypass, blind data exfiltration, DoS. **DRAFT / embargoed** — huntr / Avaiga disclosure.
+
 ## Ethics
 
 Everything here follows responsible-disclosure norms: findings are confirmed with minimal,

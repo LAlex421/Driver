@@ -150,3 +150,20 @@ bentoml (gated main server), crewai (local pickle cache), omegaconf/confuse/pyth
    from developer-controlled (not attacker-controlled) input, is a much weaker report.
 4. **Check prior art before claiming.** The one real bug here was already filed upstream.
    Rediscovery is fine; misrepresenting it as original is not.
+
+## Round 9 — second huntr candidate: Taipy GUI query injection
+
+Swept ML/LLM web apps (chainlit, taipy, mesop, solara, h2o, datasette, flaml, visidata,
+pandasgui, holoviews …) for eval/exec/df.query/SSTI on request data. Finding:
+
+**`taipy-gui` 3.0.0–4.0.2 (latest) — unauthenticated pandas `df.query` injection + ReDoS.**
+`_PandasDataAccessor.__get_data` builds a `df.query()` string from the client `filters`
+payload (delivered via the `DATA_UPDATE` WebSocket message); `action` and `col` are
+interpolated raw, and `contains` feeds the client value to `.str.contains(<regex>)`. Demonstrated
+filter bypass, blind data exfiltration, and ReDoS. Novel (no advisory for this sink); amplified
+by Taipy's wildcard-CORS socket.io (CVE-2026-85183). RCE class per D-Tale CVE-2024-8862 but not
+demonstrated (pandas grammar blocks lambdas here). See advisories/taipy-gui-query-injection/.
+
+Others this round were by-design or local: FiftyOne `exec(custom_code)` is a warned power-user
+feature; pandasgui/visidata are local desktop/TUI; datasette exec is plugin loading; h2o
+eval/exec is internal codegen.
