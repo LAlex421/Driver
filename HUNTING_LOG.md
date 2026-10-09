@@ -36,6 +36,25 @@ known configobj bug. Swept ~175 packages.
 | `pyttsx3` 2.99 | `os.system(f"aplay {temp_wav_name}")` | **False positive** — temp name is a random `NamedTemporaryFile`; text goes via C API, not shell. |
 | `command_runner`, `invoke`, `cmd2`, `pyinfra` | `shell=True` / `os.system` | By design (command-runner libraries). Not vulns. |
 
+## Round 3 — continued sweep (~230 packages total)
+
+Swept templating/serialization/HTTP/markup/validation packages across CMDI, path
+traversal, XXE, unsafe deserialization, and ReDoS. No new confirmed vulnerability;
+several candidates investigated and disproved:
+
+| Target | Candidate | Verdict |
+|--------|-----------|---------|
+| `trafilatura`, `premailer` | XML parse of remote/attacker content | Safe — `resolve_entities=False`, `no_network=True`. |
+| `genshi` | `ExternalEntityRefHandler` + `XML_PARAM_ENTITY_PARSING_ALWAYS` | Safe — handler ignores the external `sysid` and substitutes genshi's own internal HTML-entity DTD; no file/network fetch. |
+| `pooch` | remote tar extraction | Guarded (`filter=` kwarg); zip paths stdlib-sanitised. |
+| `bbcode` | `_url_re` URL-linkification regex (`(?:[^\s()<>]+|\(...\))+`, used with `.search`) | False positive — input that reaches it is all-matching, so the match succeeds with no forced-failure backtracking. Linear to n=40+. |
+| `pygments`, `mwparserfromhell`, `markdown`, `werkzeug` | lexer/parse regexes | No nested-quantifier ReDoS surfaced. |
+| `netmiko` bulk-encrypt `yaml.load(f)` | unsafe YAML | Low — local CLI reading operator's own config; modern PyYAML uses FullLoader (no arbitrary exec). |
+
+Net result of rounds 2–3: one strong, novel finding (**netmiko Nokia ReDoS**, see
+`advisories/`). Everything else was guarded, low-threat, or a disproved false positive —
+the expected hit rate for auditing maintained packages.
+
 ## Lessons (the traps)
 
 1. **`re.search` fakes quadratics.** Searching retries at every start offset, so *any*
