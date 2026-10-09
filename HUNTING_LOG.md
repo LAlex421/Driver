@@ -167,3 +167,21 @@ demonstrated (pandas grammar blocks lambdas here). See advisories/taipy-gui-quer
 Others this round were by-design or local: FiftyOne `exec(custom_code)` is a warned power-user
 feature; pandasgui/visidata are local desktop/TUI; datasette exec is plugin loading; h2o
 eval/exec is internal codegen.
+
+## Round 10 — model-file-format attempt (gguf): verified DoS, but KNOWN class (not submitted)
+
+Targeted huntr's higher-paying model-file (MFV) track. Verified a real unbounded-allocation
+DoS in the Python `gguf` package: `GGUFReader._get_field_parts` loops `range(alen[0])` on an
+attacker-controlled uint64 array length; once reads pass EOF, `offs` stops advancing while the
+loop keeps appending → a 49-byte crafted .gguf exhausts memory (reproduced: MemoryError under a
+512MB cap).
+
+NOT submitted — novelty check failed: the GGUF python-parser DoS space is already disclosed
+(oss-sec advisory 2026-q2/546 explicitly names gguf_reader.py for alignment + n_dims unbounded
+allocation; huntr has a public "GGUF vulnerabilities" hacking guide; CVE-2024-25665/66/67,
+Ollama CVE-2025-66959/60, CVE-2026-7482). The array-length variant is at best a marginal
+addition to that known class → duplicate risk. DoS-tier, not the RCE/$4K tier.
+
+Takeaway: the model-file-format space (esp. GGUF) is heavily farmed, and its $4K RCE tier is
+native-code memory corruption in llama.cpp/ggml — not verifiable in pure Python here and heavily
+competed. The productive novel vein for this session remains ML *web apps* (shapash, taipy).
