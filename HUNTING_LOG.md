@@ -200,3 +200,23 @@ where `reference_path` is a client-settable CollectorConfig field with no contai
 → NoSecurityService.authenticate() always returns a user, so guards=[is_authenticated] passes.
 Verified the path escape (absolute + traversal). Distinct from CVE-2026-75111 (UI read traversal);
 this is a collector *write*. See advisories/evidently-collector-file-write/.
+
+## Round 12 — 4th-finding hunt across AI/ML app/serving frameworks (no new novel yet)
+
+Scanned langflow, letta, khoj, mlserver, langserve, giskard, trulens, ragas, nemoguardrails,
+camel-ai, praisonai, semantic-router, phoenix, agno, vanna, uptrain, mlflow for web-reachable
+eval/exec/query/path/deser sinks. Results:
+
+- **uptrain 0.7.1** — found eval() of client Form `checks`/`metadata` in `/create_project`
+  (verified RCE) BUT it is already **CVE-2025-27770** (same endpoint/params/version; public PoC).
+  Discarded as duplicate.
+- vanna: subprocess is a hardcoded `pip install nest_asyncio` (not injectable); SQL exec is the
+  known by-design text-to-SQL risk.
+- khoj: audio_filename is server-generated (uuid) — safe.
+- mlflow: heavily audited (prior traversal CVEs); scorer exec guarded; static send_from_directory.
+- langflow 0.0.78: ancient version, any bug long-fixed.
+- camel/phoenix: subprocess/sandbox are guarded/fixed-arg.
+
+Net: no new NOVEL finding this round. Standing novel total: shapash (RCE), taipy (injection),
+evidently (file write) + netmiko (ReDoS, CVE track). The obvious AI/ML RCE sinks are increasingly
+already CVE'd (uptrain, pandasai); remaining novel bugs are subtler and slower to find.
