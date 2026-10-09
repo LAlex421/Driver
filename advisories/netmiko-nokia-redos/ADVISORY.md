@@ -78,12 +78,61 @@ regex; it opens no network connections and runs no device commands).
 base prompt such as `A:>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>` (no `#`) triggers the hang the next
 time Netmiko establishes the session / recomputes the base prompt.
 
-## Severity
+## How the attack happens (step-by-step)
 
-Moderate. Exploitation requires the attacker to control the prompt bytes returned by a
-managed device (compromised/malicious device or MITM). No authentication bypass or code
-execution; impact is availability (DoS) of the automation host. The trigger is tiny
-(~30 bytes) and the blow-up is exponential, so a single crafted prompt is sufficient.
+The attacker's goal is to make the operator's automation host run this regex against a
+string the attacker controls. The chain:
+
+1. **The operator runs Netmiko against a Nokia device.** This is ordinary, intended use:
+   a script, a scheduler (e.g. Nornir/Netmiko, Ansible's `netmiko` modules, a home-grown
+   collector) opens a `NokiaSrosSSH` / `NokiaIsamSSH` session — `device_type="nokia_sros"`
+   or `"nokia_isam"`. Establishing a session calls `set_base_prompt()` as part of
+   `session_preparation()`.
+2. **Netmiko reads the device's prompt.** `set_base_prompt()` → `find_prompt()` sends a
+   newline and returns whatever the device echoes back as its prompt, **verbatim and with no
+   length limit**, as `cur_base_prompt`.
+3. **The device returns a malicious prompt.** Instead of a normal prompt like
+   `*A:router1>config#`, the attacker-controlled device replies with a short string of `>`
+   characters and **no `#`**, e.g. `A:>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>` (~40 bytes).
+4. **Netmiko runs the evil regex on it.** `re.search(r"\*?(.*?)(>.*)*#", cur_base_prompt)`
+   begins exploring the exponentially many ways to split that `>` run among the `(>.*)*`
+   iterations, looking for a trailing `#` that never comes.
+5. **The automation host hangs.** One CPU core goes to 100% and the call does not return in
+   any practical time. The worker/thread/process doing that session is dead; a single-threaded
+   collector is fully wedged, and the SSH session's own timeouts do not help because the hang
+   is in pure-Python regex evaluation, not in network I/O.
+
+**Who can be the "malicious device":**
+- A device an attacker has already compromised (lateral movement: a foothold on one managed
+  router becomes a DoS primitive against the automation controller that polls it).
+- A rogue/planted device on a network the operator is asked to onboard or inventory.
+- A man-in-the-middle on the management channel (Telnet in clear; SSH if the attacker holds a
+  position that lets them tamper with the stream).
+- Any scenario where prompt text crosses a trust boundary into the automation host.
+
+## Danger level
+
+**Rating: Medium (CVSS 3.1 ~6.5), trending High in unattended automation.**
+
+Suggested CVSS 3.1 vector: `AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H` = **6.5 (Medium)**.
+- **AV:N** — the trigger arrives over the network connection to the device.
+- **AC:L** — crafting the prompt is trivial (a few dozen `>`); the blow-up is deterministic.
+- **PR:N** — no credentials on the Netmiko host are needed.
+- **UI:R** — in the common case a human/automation must initiate the session to the malicious
+  device. In an **unattended collector that polls devices on a schedule, this becomes UI:N**,
+  raising the vector to `AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H` = **7.5 (High)**.
+- **A:H** — complete, persistent CPU exhaustion of the affected worker; no auto-recovery.
+
+**What it is not:** no code execution, no data disclosure, no integrity impact. It is purely
+availability. The main real-world barrier is the precondition — the attacker must control the
+bytes a managed device returns — which is why this is Medium rather than Critical. The
+mitigating factors are the precondition only; once met, exploitation is reliable, cheap, and
+triggered by ~30–40 bytes.
+
+**Why it still matters:** the automation/management plane is high-value, and a core security
+expectation is that a *managed* device cannot take down the *manager*. This breaks that: one
+compromised router can hang the controller that oversees the whole fleet, blinding operators
+and stalling automated remediation precisely when it is needed.
 
 ## Suggested remediation
 
