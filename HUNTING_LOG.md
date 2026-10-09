@@ -80,6 +80,24 @@ Extra false-positive caught here: the oracle flagged a regex under `fullmatch` t
 actually runs with `re.search`; and a naive "fix" that kept a leading `[\*\s]*` was still
 O(n²) because `re.search` re-scans from every offset — the real fix must **anchor** (`^`).
 
+## Round 5 — "stronger target" pivot: AI/ML + web (RCE/path/deser/SSTI)
+
+Moved up the severity ladder to RCE-class sinks in bounty-hot AI/ML tooling
+(`scripts/hisev_scan.py`). Results:
+
+| Target | Candidate | Verdict |
+|--------|-----------|---------|
+| `txtai` 9.14 | Jinja `from_string` in LLM agent; `pickle` index loader | Safe — `SandboxedEnvironment`; pickle gated behind explicit `ALLOW_PICKLE` (raises by default). |
+| `flask_swagger_ui`, `Flask-Uploads` | `send_from_directory(user_path)` | Safe — werkzeug `safe_join` blocks traversal on modern Flask. |
+| `gradio_client`, `kedro`, `llama_index_core`, `guardrails_ai`, `marvin`, `instructor` | `eval`/`exec`/deser | Only in examples/CLI or developer-controlled paths; nothing attacker-reachable. |
+| **`pandasai` 2.3.2** | `exec()` of LLM-generated code behind a custom `_clean_code` sandbox | **RCE — fully reproduced**, BUT a **known CVE** (CVE-2024-12366, ≤2.4.3). Not novel. See `advisories/pandasai-sandbox-escape/`. |
+
+The pandasai escape is real and end-to-end (string-split `getattr` defeats the substring
+`_is_jailbreak` filter; `__globals__` gadget reaches `os`). Prior-art check turned it from
+"a new RCE" into "a reproduction" — the honest outcome. Key lesson: **a higher-severity
+target yields a higher-severity bug class, but severity ≠ novelty.** The only *novel*
+reportable finding from all rounds remains the netmiko prompt-ReDoS cluster.
+
 ## Lessons (the traps)
 
 1. **`re.search` fakes quadratics.** Searching retries at every start offset, so *any*

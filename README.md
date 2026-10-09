@@ -17,6 +17,11 @@ open-source software, plus write-ups of what I find.
   parsing (`set_base_prompt` in the Nokia SR-OS/ISAM, Extreme EXOS, and Cisco ASA drivers). **DRAFT / embargoed:** not yet disclosed to maintainers —
   do a private security report before publishing or requesting a CVE.
 
+- **[`advisories/pandasai-sandbox-escape/`](advisories/pandasai-sandbox-escape/)** — a
+  fully-working **RCE** sandbox-escape PoC against PandasAI 2.3.2. Clearly labeled: this is a
+  **reproduction of the known CVE-2024-12366** (PandasAI ≤2.4.3), **not** an original find —
+  kept as a demonstration of RCE-class analysis. Prior art was checked before any claim.
+
 ## Ethics
 
 Everything here follows responsible-disclosure norms: findings are confirmed with minimal,
